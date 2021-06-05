@@ -3,6 +3,8 @@ const { graphqlHTTP } = require("express-graphql");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
 const schema = require("./schema/schema");
+const expressPlayground = require("graphql-playground-middleware-express").default;
+const attachUser = require("./helpers/user.helpers");
 
 const PORT = 5000;
 const DB_URI = "mongodb://localhost/dipto-sayburg-backend-test";
@@ -16,14 +18,24 @@ mongoose
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
 app.use(morgan("dev"));
 
+app.use(attachUser);
+
 app.use(
-    "/graphql",
-    graphqlHTTP({
-        graphiql: true,
+    "/gql",
+    graphqlHTTP((req) => ({
         schema: schema,
+        context: {
+            req: req,
+        },
+    }))
+);
+
+app.get(
+    "/graphql",
+    expressPlayground({
+        endpoint: "/gql",
     })
 );
 

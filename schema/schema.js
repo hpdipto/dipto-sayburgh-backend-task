@@ -32,8 +32,20 @@ const RootQuery = new GraphQLObjectType({
     fields: () => ({
         users: {
             type: new GraphQLList(UserType),
-            resolve(parent, args) {
-                return User.find({});
+            resolve(parent, args, context) {
+                if (context.req.user) return User.find({});
+                else throw new Error("Unauthorized user!");
+            },
+        },
+        me: {
+            type: UserType,
+            async resolve(parent, args, context) {
+                let token = context.req.headers.authorization;
+                if (!token) {
+                    throw new Error("Unauthorized user!");
+                }
+                let user = await User.find({});
+                return user[0];
             },
         },
     }),
