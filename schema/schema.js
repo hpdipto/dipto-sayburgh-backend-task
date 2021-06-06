@@ -12,6 +12,7 @@ const {
 } = graphql;
 
 const User = require("../models/user.models");
+const { Post } = require("../models/post.models");
 
 // Create Type
 const UserType = new GraphQLObjectType({
@@ -30,24 +31,24 @@ const PostType = new GraphQLObjectType({
     description: "Documentation for Post",
     fields: () => ({
         id: { type: GraphQLID },
-        author: new GraphQLNonNull(GraphQLID),
-        title: new GraphQLNonNull(GraphQLString),
-        post: new GraphQLNonNull(GraphQLString),
-        tags: new GraphQLList(GraphQLString),
-        comments: new GraphQLList(CommentType),
-    })
-})
+        author: { type: GraphQLID },
+        title: { type: GraphQLString },
+        post: { type: GraphQLString },
+        tags: { type: new GraphQLList(GraphQLString) },
+        comments: { type: new GraphQLList(CommentType) },
+    }),
+});
 
 const CommentType = new GraphQLObjectType({
     name: "Comment",
     description: "Documentation for Comment",
     fields: () => ({
         id: { type: GraphQLID },
-        commenter: new GraphQLNonNull(GraphQLID),
-        commnet: new GraphQLNonNull(GraphQLString),
-        time: GraphQLString
-    })
-})
+        commenter: { type: GraphQLID },
+        comment: { type: GraphQLString },
+        time: { type: GraphQLString },
+    }),
+});
 
 // Root Query
 const RootQuery = new GraphQLObjectType({
@@ -138,6 +139,30 @@ const Mutation = new GraphQLObjectType({
                     );
                     return token;
                 } else throw new Error("Passowrd didn't match");
+            },
+        },
+        createPost: {
+            type: PostType,
+            args: {
+                title: {
+                    type: GraphQLString,
+                },
+                post: {
+                    type: GraphQLString,
+                },
+                tags: {
+                    type: new GraphQLList(GraphQLString),
+                },
+            },
+            async resolve(parent, args, context) {
+                if (!context.req.user) throw new Error("Unauthorized user!");
+                let post = await Post.create({
+                    author: context.req.user,
+                    title: args.title,
+                    post: args.post,
+                    tags: args.tags,
+                });
+                return post;
             },
         },
     },
