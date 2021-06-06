@@ -25,6 +25,30 @@ const UserType = new GraphQLObjectType({
     }),
 });
 
+const PostType = new GraphQLObjectType({
+    name: "Post",
+    description: "Documentation for Post",
+    fields: () => ({
+        id: { type: GraphQLID },
+        author: new GraphQLNonNull(GraphQLID),
+        title: new GraphQLNonNull(GraphQLString),
+        post: new GraphQLNonNull(GraphQLString),
+        tags: new GraphQLList(GraphQLString),
+        comments: new GraphQLList(CommentType),
+    })
+})
+
+const CommentType = new GraphQLObjectType({
+    name: "Comment",
+    description: "Documentation for Comment",
+    fields: () => ({
+        id: { type: GraphQLID },
+        commenter: new GraphQLNonNull(GraphQLID),
+        commnet: new GraphQLNonNull(GraphQLString),
+        time: GraphQLString
+    })
+})
+
 // Root Query
 const RootQuery = new GraphQLObjectType({
     name: "RootQueryType",
