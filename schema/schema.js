@@ -73,6 +73,26 @@ const RootQuery = new GraphQLObjectType({
                 return user[0];
             },
         },
+        posts: {
+            type: new GraphQLList(PostType),
+            async resolve(parent, args, context) {
+                let posts = Post.find({});
+                return posts;
+            },
+        },
+        post: {
+            type: PostType,
+            args: {
+                id: {
+                    type: new GraphQLNonNull(GraphQLID),
+                },
+            },
+            async resolve(parent, args, context) {
+                let post = await Post.findById(args.id);
+                if (post) return post;
+                else throw new Error("No post found");
+            },
+        },
     }),
 });
 
@@ -168,7 +188,7 @@ const Mutation = new GraphQLObjectType({
         updatePost: {
             type: PostType,
             args: {
-                id: { type: GraphQLID },
+                id: { type: new GraphQLNonNull(GraphQLID) },
                 title: { type: GraphQLString },
                 post: { type: GraphQLString },
                 tags: { type: new GraphQLList(GraphQLString) },
