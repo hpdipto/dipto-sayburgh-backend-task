@@ -12,7 +12,7 @@ const {
 } = graphql;
 
 const User = require("../models/user.models");
-const { Post } = require("../models/post.models");
+const { Post, Comment } = require("../models/post.models");
 
 // Create Type
 const UserType = new GraphQLObjectType({
@@ -35,7 +35,13 @@ const PostType = new GraphQLObjectType({
         title: { type: GraphQLString },
         post: { type: GraphQLString },
         tags: { type: new GraphQLList(GraphQLString) },
-        comments: { type: new GraphQLList(CommentType) },
+        comments: {
+            type: new GraphQLList(CommentType),
+            async resolve(parent, args) {
+                let comments = await Comment.find({ _id: { $in: parent.comments } });
+                return comments;
+            },
+        },
     }),
 });
 
@@ -44,7 +50,13 @@ const CommentType = new GraphQLObjectType({
     description: "Documentation for Comment",
     fields: () => ({
         id: { type: GraphQLID },
-        commenter: { type: GraphQLID },
+        commenter: {
+            type: UserType,
+            async resolve(parent, args) {
+                let user = await User.findById(parent.commenter);
+                return user;
+            },
+        },
         comment: { type: GraphQLString },
         time: { type: GraphQLString },
     }),
@@ -89,8 +101,10 @@ const RootQuery = new GraphQLObjectType({
             },
             async resolve(parent, args, context) {
                 let post = await Post.findById(args.id);
-                if (post) return post;
-                else throw new Error("No post found");
+                if (post) {
+                    console.log(post);
+                    return post;
+                } else throw new Error("No post found");
             },
         },
     }),
@@ -118,16 +132,24 @@ const Mutation = new GraphQLObjectType({
             },
             async resolve(parent, args) {
                 let password = await bcrypt.hash(args.password, 11);
-                let user = new User({
-                    firstName: args.firstName,
-                    lastName: args.lastName,
-                    email: args.email,
-                    password: password,
-                });
-                // save to db
-                user.save();
+                try {
+                    let user = new User({
+                        firstName: args.firstName,
+                        lastName: args.lastName,
+                        email: args.email,
+                        password: password,
+                    });
 
-                return user;
+                    // save to db
+                    user.save();
+
+                    return user;
+                } catch (e) {
+                    console.log("-----------");
+                    console.log(e);
+                    console.log("-----------");
+                    throw new Error(e);
+                }
             },
         },
         login: {
@@ -205,6 +227,32 @@ const Mutation = new GraphQLObjectType({
                         await post.save();
                         return post;
                     }
+                } else throw new Error("No post found!");
+            },
+        },
+        createComment: {
+            type: CommentType,
+            args: {
+                id: {
+                    type: new GraphQLNonNull(GraphQLID),
+                },
+                comment: {
+                    type: new GraphQLNonNull(GraphQLString),
+                },
+            },
+            async resolve(parent, args, context) {
+                if (!context.req.user) throw new Error("Unauthorized user!");
+                let post = await Post.findById(args.id);
+                if (post) {
+                    let comment = await Comment.create({
+                        commenter: context.req.user,
+                        comment: args.comment,
+                        time: new Date().toDateString(),
+                    });
+                    console.log(comment);
+                    post.comments.push(comment);
+                    await post.save();
+                    return comment;
                 } else throw new Error("No post found!");
             },
         },
