@@ -165,6 +165,29 @@ const Mutation = new GraphQLObjectType({
                 return post;
             },
         },
+        updatePost: {
+            type: PostType,
+            args: {
+                id: { type: GraphQLID },
+                title: { type: GraphQLString },
+                post: { type: GraphQLString },
+                tags: { type: new GraphQLList(GraphQLString) },
+            },
+            async resolve(parent, args, context) {
+                if (!context.req.user) throw new Error("Unauthorized user!");
+                let post = await Post.findById(args.id);
+                if (post) {
+                    if (context.req.user != post.author) throw new Error("Permission denied!");
+                    else {
+                        if (args.title) post.title = args.title;
+                        if (args.post) post.post = args.post;
+                        if (args.tags) post.tags = args.tags;
+                        await post.save();
+                        return post;
+                    }
+                } else throw new Error("No post found!");
+            },
+        },
     },
 });
 
