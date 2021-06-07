@@ -7,6 +7,8 @@ const User = require("../models/user.models");
 const { Post, Comment } = require("../models/post.models");
 const { UserType, PostType, CommentType } = require("./types");
 
+require("dotenv").config();
+
 const Mutation = new GraphQLObjectType({
     name: "Mutation",
     fields: {
@@ -66,7 +68,7 @@ const Mutation = new GraphQLObjectType({
                         {
                             user: user.id,
                         },
-                        "secRet",
+                        process.env.JWT_SECRET,
                         {
                             expiresIn: "7d",
                         }
