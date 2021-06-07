@@ -33,7 +33,7 @@ app.use(
 );
 
 app.get(
-    "/graphql",
+    "/",
     expressPlayground({
         endpoint: "/gql",
     })

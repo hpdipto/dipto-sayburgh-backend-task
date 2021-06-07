@@ -31,10 +31,16 @@ const PostType = new GraphQLObjectType({
     description: "Documentation for Post",
     fields: () => ({
         id: { type: GraphQLID },
-        author: { type: GraphQLID },
         title: { type: GraphQLString },
         post: { type: GraphQLString },
         tags: { type: new GraphQLList(GraphQLString) },
+        author: {
+            type: UserType,
+            async resolve(parent, args) {
+                let user = await User.findOne(parent.author);
+                return user;
+            },
+        },
         comments: {
             type: new GraphQLList(CommentType),
             async resolve(parent, args) {
@@ -102,7 +108,6 @@ const RootQuery = new GraphQLObjectType({
             async resolve(parent, args, context) {
                 let post = await Post.findById(args.id);
                 if (post) {
-                    console.log(post);
                     return post;
                 } else throw new Error("No post found");
             },
@@ -114,7 +119,7 @@ const RootQuery = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
     name: "Mutation",
     fields: {
-        createUser: {
+        register: {
             type: UserType,
             args: {
                 firstName: {
@@ -226,6 +231,23 @@ const Mutation = new GraphQLObjectType({
                         if (args.tags) post.tags = args.tags;
                         await post.save();
                         return post;
+                    }
+                } else throw new Error("No post found!");
+            },
+        },
+        deletePost: {
+            type: GraphQLString,
+            args: {
+                id: { type: new GraphQLNonNull(GraphQLID) },
+            },
+            async resolve(parent, args, context) {
+                if (!context.req.user) throw new Error("Unauthorized user!");
+                let post = await Post.findById(args.id);
+                if (post) {
+                    if (context.req.user != post.author) throw new Error("Permission denied!");
+                    else {
+                        await Post.findOneAndDelete(args.id);
+                        return "Post deleted successfully";
                     }
                 } else throw new Error("No post found!");
             },
