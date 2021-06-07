@@ -2,9 +2,10 @@ const express = require("express");
 const { graphqlHTTP } = require("express-graphql");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
-const schema = require("./schema/schema");
 const expressPlayground = require("graphql-playground-middleware-express").default;
+
 const attachUser = require("./helpers/user.helpers");
+const schema = require("./graphql/schema");
 
 const PORT = 5000;
 const DB_URI = "mongodb://localhost/dipto-sayburg-backend-test";

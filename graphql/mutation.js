@@ -1,121 +1,12 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const graphql = require("graphql");
-const {
-    GraphQLID,
-    GraphQLSchema,
-    GraphQLInt,
-    GraphQLObjectType,
-    GraphQLString,
-    GraphQLList,
-    GraphQLNonNull,
-} = graphql;
+const { GraphQLID, GraphQLString, GraphQLObjectType, GraphQLList, GraphQLNonNull } = graphql;
 
 const User = require("../models/user.models");
 const { Post, Comment } = require("../models/post.models");
+const { UserType, PostType, CommentType } = require("./types");
 
-// Create Type
-const UserType = new GraphQLObjectType({
-    name: "User",
-    description: "Documentation for User",
-    fields: () => ({
-        id: { type: GraphQLID },
-        firstName: { type: GraphQLString },
-        lastName: { type: GraphQLString },
-        email: { type: GraphQLString },
-    }),
-});
-
-const PostType = new GraphQLObjectType({
-    name: "Post",
-    description: "Documentation for Post",
-    fields: () => ({
-        id: { type: GraphQLID },
-        title: { type: GraphQLString },
-        post: { type: GraphQLString },
-        tags: { type: new GraphQLList(GraphQLString) },
-        author: {
-            type: UserType,
-            async resolve(parent, args) {
-                let user = await User.findOne(parent.author);
-                return user;
-            },
-        },
-        comments: {
-            type: new GraphQLList(CommentType),
-            async resolve(parent, args) {
-                let comments = await Comment.find({ _id: { $in: parent.comments } });
-                return comments;
-            },
-        },
-    }),
-});
-
-const CommentType = new GraphQLObjectType({
-    name: "Comment",
-    description: "Documentation for Comment",
-    fields: () => ({
-        id: { type: GraphQLID },
-        commenter: {
-            type: UserType,
-            async resolve(parent, args) {
-                let user = await User.findById(parent.commenter);
-                return user;
-            },
-        },
-        comment: { type: GraphQLString },
-        time: { type: GraphQLString },
-    }),
-});
-
-// Root Query
-const RootQuery = new GraphQLObjectType({
-    name: "RootQueryType",
-    description: "Root Query",
-    fields: () => ({
-        users: {
-            type: new GraphQLList(UserType),
-            resolve(parent, args, context) {
-                if (context.req.user) return User.find({});
-                else throw new Error("Unauthorized user!");
-            },
-        },
-        me: {
-            type: UserType,
-            async resolve(parent, args, context) {
-                let token = context.req.headers.authorization;
-                if (!token) {
-                    throw new Error("Unauthorized user!");
-                }
-                let user = await User.find({});
-                return user[0];
-            },
-        },
-        posts: {
-            type: new GraphQLList(PostType),
-            async resolve(parent, args, context) {
-                let posts = Post.find({});
-                return posts;
-            },
-        },
-        post: {
-            type: PostType,
-            args: {
-                id: {
-                    type: new GraphQLNonNull(GraphQLID),
-                },
-            },
-            async resolve(parent, args, context) {
-                let post = await Post.findById(args.id);
-                if (post) {
-                    return post;
-                } else throw new Error("No post found");
-            },
-        },
-    }),
-});
-
-// Mutations
 const Mutation = new GraphQLObjectType({
     name: "Mutation",
     fields: {
@@ -146,13 +37,9 @@ const Mutation = new GraphQLObjectType({
                     });
 
                     // save to db
-                    user.save();
-
-                    return user;
+                    let savedUser = user.save();
+                    return savedUser;
                 } catch (e) {
-                    console.log("-----------");
-                    console.log(e);
-                    console.log("-----------");
                     throw new Error(e);
                 }
             },
@@ -281,7 +168,4 @@ const Mutation = new GraphQLObjectType({
     },
 });
 
-module.exports = new GraphQLSchema({
-    query: RootQuery,
-    mutation: Mutation,
-});
+module.exports = { Mutation };
